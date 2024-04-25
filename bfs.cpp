@@ -1,95 +1,102 @@
 #include <iostream>
-#include <stdlib.h>
+#include <vector>
 #include <queue>
+#include <omp.h>
+
 using namespace std;
-class node {
-    public:
-        node *left, *right;
-        int data;
-};
-class Breadthfs{
-    public:
-        node *insert(node *, int);
-        void bfs(node *);
-};
 
-node *insert(node *root, int data){
-        // inserts a node in tree
-    if (!root) {
-        root = new node;
-        root->left = NULL;
-        root->right = NULL;
-        root->data = data;
-        return root;
-    }
-    queue<node *> q;
-    q.push(root);
-    while (!q.empty()) {
-        node *temp = q.front();
-        q.pop();
-        if (temp->left == NULL) {
-            temp->left = new node;
-            temp->left->left = NULL;
-            temp->left->right = NULL;
-            temp->left->data = data;
-            return root;
-        }else{
-            q.push(temp->left);
-        }
-        if (temp->right == NULL) {
-            temp->right = new node;
-            temp->right->left = NULL;
-            temp->right->right = NULL;
-            temp->right->data = data;
-            return root;
-        }else{
-            q.push(temp->right);
-        }
-    }
-}
-
-void bfs(node *head)
+class Graph
 {
-    queue<node *> q;
-    q.push(head);
-    int qSize;
-    while (!q.empty())
-    {
-        qSize = q.size();
-        #pragma omp parallel for
-        // creates parallel threads
-        for (int i = 0; i < qSize; i++)
-        {
-            // cout << "Number of threads: " << omp_get_num_threads() << endl; 
-            node *currNode;
-            {
+private:
+    int numVertices;         // Number of vertices
+    vector<vector<int>> adj; // Adjacency list
 
-                currNode = q.front();
-                q.pop();
-                cout << "\t" << currNode->data;
-            } // prints parent node
+public:
+    Graph(int vertices) : numVertices(vertices), adj(numVertices) {}
+
+    void addEdge(int src, int dest)
+    {
+        adj[src].push_back(dest);
+        adj[dest].push_back(src);
+    }
+
+    void viewGraph()
+    {
+        cout << "Graph : " << endl;
+        for (int i = 0; i < numVertices; i++)
+        {
+            cout << "Vertices :" << i << " ->";
+            for (int neighbour : adj[i])
             {
-                if (currNode->left) // push parent's left node in queue
-                    q.push(currNode->left);
-                if (currNode->right)
-                    q.push(currNode->right);
-            } // push parent's right node in queue
+                cout << neighbour << " ";
+            }
+            cout << endl;
         }
     }
-}
+
+    void parallelBFS(int startVertex)
+    {
+        vector<bool> visited(numVertices, false);
+        queue<int> q;
+        visited[startVertex] = true;
+        q.push(startVertex);
+
+        while (!q.empty())
+        {
+            int level_size = q.size(); // Get the size of the current level for parallel processing
+
+#pragma omp parallel
+            {
+                vector<bool> local_visited(numVertices, false);
+#pragma omp for
+                for (int i = 0; i < level_size; ++i)
+                {
+                    int current;
+#pragma omp critical
+                    {
+                        current = q.front();
+                        q.pop();
+                    }
+                    cout << current << " ";
+                    for (int neighbour : adj[current])
+                    {
+                        if (!local_visited[neighbour])
+                        {
+                            local_visited[neighbour] = true;
+#pragma omp critical
+                            {
+                                if (!visited[neighbour])
+                                {
+                                    visited[neighbour] = true;
+                                    q.push(neighbour);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+};
+
 int main()
 {
-    node *root = NULL;
-    int data;
-    char ans;
-    do
-    {
-        cout << "\n enter data=>";
-        cin >> data;
-        root = insert(root, data);
-        cout << "do you want insert one more node?";
-        cin >> ans;
-    } while (ans == 'y' || ans == 'Y');
-    bfs(root);
+    // Predefined graph with 6 vertices and 5 edges
+    Graph graph(6);
+    graph.addEdge(0, 1);
+    graph.addEdge(0, 2);
+    graph.addEdge(1, 3);
+    graph.addEdge(1, 4);
+    graph.addEdge(2, 5);
+
+    // View the graph
+    graph.viewGraph();
+
+    // Start BFS from vertex 0
+    int startVertex = 0;
+    cout << "Parallel Breadth First Search (BFS) starting from vertex " << startVertex << ": ";
+    graph.parallelBFS(startVertex);
+    cout << endl;
+
     return 0;
 }

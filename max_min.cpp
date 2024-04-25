@@ -1,5 +1,4 @@
 #include <iostream>
-// #include <vector>
 #include <omp.h>
 #include <climits>
 using namespace std;
@@ -55,18 +54,18 @@ void average_reduction(int arr[], int n)
 
 int main()
 {
-	int *arr, n;
-	cout << "\n enter total no of elements=>";
-	cin >> n;
-	arr = new int[n];
-	cout << "\n enter elements=>";
-	for (int i = 0; i < n; i++)
-	{
-		cin >> arr[i];
-	}
+	// int *arr, n;
+	// cout << "\n enter total no of elements=>";
+	// cin >> n;
+	// arr = new int[n];
+	// cout << "\n enter elements=>";
+	// for (int i = 0; i < n; i++)
+	// {
+	// 	cin >> arr[i];
+	// }
 
-	//   int arr[] = {5, 2, 9, 1, 7, 6, 8, 3, 4};
-	//   int n = size(arr);
+	int arr[] = {5, 2, 9, 1, 7, 6, 8, 3, 4};
+	const int n = sizeof(arr) / sizeof(arr[0]);
 
 	min_reduction(arr, n);
 	max_reduction(arr, n);
